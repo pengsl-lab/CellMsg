@@ -108,10 +108,10 @@ class GCN_MLP(torch.nn.Module):
         for i in sample_train:
             l_temp = l_embedding[i[0]]
             r_temp = r_embedding[i[1]]
-            temp = np.append(l_temp.detach().numpy(), r_temp.detach().numpy())
+            temp = torch.cat((l_temp, r_temp), dim=0)
             feature_train.append(temp)
-        
-        x = torch.tensor(feature_train, dtype=torch.float32)
+
+        x = torch.stack(feature_train)
         
         x = self.fc1(x)
         x = F.relu(x)
