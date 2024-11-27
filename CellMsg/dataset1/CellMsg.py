@@ -16,6 +16,7 @@ import os
 # import KTBoost.KTBoost as KB
 # import gpboost as gb
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 proteinFeature_L = pd.read_csv("/home/jby2/XH/CellMsg/dataset1/ligand_res_fea.csv", header=None, index_col=None)
 proteinFeature_R = pd.read_csv("/home/jby2/XH/CellMsg/dataset1/receptor_res_fea.csv", header=None, index_col=None)
@@ -143,7 +144,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(sample, label)):
     #print(type(label_train))
     #print(type(feature_train))
     
-    model = GCN_MLP()
+    model = GCN_MLP().to(device)
     # lr = 1e-3
     optimizer = torch.optim.Adam(model.parameters(), lr=9*1e-4, weight_decay=1e-7)
     criterion = torch.nn.BCELoss() 
@@ -153,8 +154,8 @@ for fold, (train_index, test_index) in enumerate(kf.split(sample, label)):
     for epoch in range(250):  
         model.train()
         optimizer.zero_grad()
-        output = model(L_R_fea, edge_index, feature_train)
-        loss = criterion(output, label_train)
+        output = model(L_R_fea.to(device), edge_index.to(device), feature_train.to(device))
+        loss = criterion(output, label_train.to(device))
         loss.backward()
         optimizer.step()
         print(f"Epoch {epoch+1}, Loss: {loss.item()}")
@@ -162,7 +163,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(sample, label)):
     model.eval()
     correct = 0
     with torch.no_grad():
-        output = model(L_R_fea, edge_index, feature_test)
+        output = model(L_R_fea.to(device), edge_index.to(device), feature_test.to(device))
         #_, predicted = torch.max(output.data, 1)
         y_ = []
         list_out = output.view(-1).tolist()
@@ -183,12 +184,12 @@ for fold, (train_index, test_index) in enumerate(kf.split(sample, label)):
         print(f"recall: {recall_score(label_test.numpy(), np.array(y_).reshape(-1, 1))}")
         f1_kt += f1_score(label_test.numpy(), np.array(y_).reshape(-1, 1))
         print(f"f1_score: {f1_score(label_test.numpy(), np.array(y_).reshape(-1, 1))}")
-        fpr_kt, tpr_kt, thresholds = roc_curve(label_test.numpy(), output.numpy())
+        fpr_kt, tpr_kt, thresholds = roc_curve(label_test.numpy(), output.detach().cpu().numpy())
         AUC_kt += auc(fpr_kt, tpr_kt)
         roc_auc = auc(fpr_kt, tpr_kt)
         print(f"roc_auc: {roc_auc}")
         # print(f"fpr: {fpr_kt}")
-        prec_kt, rec_kt, thr = precision_recall_curve(label_test.numpy(), output.numpy())
+        prec_kt, rec_kt, thr = precision_recall_curve(label_test.numpy(), output.detach().cpu().numpy())
         AUPR_kt += auc(rec_kt, prec_kt)
         aupr = auc(rec_kt, prec_kt)
         print(f"aupr: {aupr}")
