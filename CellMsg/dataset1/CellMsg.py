@@ -154,7 +154,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(sample, label)):
     for epoch in range(250):  
         model.train()
         optimizer.zero_grad()
-        output = model(L_R_fea.to(device), edge_index.to(device), feature_train.to(device))
+        output = model(L_R_fea.to(device), edge_index.to(device), torch.tensor(feature_train).to(device))
         loss = criterion(output, label_train.to(device))
         loss.backward()
         optimizer.step()
@@ -163,7 +163,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(sample, label)):
     model.eval()
     correct = 0
     with torch.no_grad():
-        output = model(L_R_fea.to(device), edge_index.to(device), feature_test.to(device))
+        output = model(L_R_fea.to(device), edge_index.to(device), torch.tensor(feature_test).to(device))
         #_, predicted = torch.max(output.data, 1)
         y_ = []
         list_out = output.view(-1).tolist()
