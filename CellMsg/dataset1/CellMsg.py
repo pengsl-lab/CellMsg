@@ -6,12 +6,13 @@ from sklearn.metrics import precision_recall_curve, roc_curve, auc
 import torch
 from torch_geometric.nn.conv import GCNConv
 from sklearn.metrics import matthews_corrcoef
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, coo_matrix
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, Subset, random_split, TensorDataset
 from scipy import interp
+from torch_sparse import SparseTensor
 import os
 # import KTBoost.KTBoost as KB
 # import gpboost as gb
@@ -38,11 +39,12 @@ whole_interaction = np.zeros((interaction.shape[0] + interaction.shape[1], inter
 whole_interaction[:interaction.shape[0], interaction.shape[0]:] = interaction
 # whole_interaction[interaction.shape[0]:, :interaction.shape[0]] = interaction.T  
 
-interaction1 = csr_matrix(whole_interaction)
-row, col = interaction1.nonzero()
-edge_index = np.vstack([row, col])
-edge_index = torch.from_numpy(edge_index)
-
+interaction_coo = coo_matrix(whole_interaction)
+row = interaction_coo.row
+col = interaction_coo.col
+data = interaction_coo.data
+edge_index = torch.tensor([row, col], dtype=torch.long)
+edge_index = SparseTensor(row=edge_index[0], col=edge_index[1], sparse_sizes=(whole_interaction.shape[0], whole_interaction.shape[0]))
 
 
 def Splicing_data(interaction):
